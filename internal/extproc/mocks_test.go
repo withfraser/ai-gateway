@@ -126,7 +126,7 @@ type mockRouter struct {
 }
 
 // Calculate implements [router.Router.Calculate].
-func (m mockRouter) Calculate(headers map[string]string) (filterapi.RouteRuleName, error) {
+func (m mockRouter) Calculate(headers map[string]string, _ *extprocv3.HttpBody) (filterapi.RouteRuleName, error) {
 	require.Equal(m.t, m.expHeaders, headers)
 	return filterapi.RouteRuleName(m.retRouteName), m.retErr
 }

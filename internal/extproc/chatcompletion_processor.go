@@ -106,8 +106,16 @@ func (c *chatCompletionProcessorRouterFilter) ProcessRequestBody(_ context.Conte
 	}
 
 	c.requestHeaders[c.config.modelNameHeaderKey] = model
-	routeName, err := c.config.router.Calculate(c.requestHeaders)
+	routeName, err := c.config.router.Calculate(c.requestHeaders, rawBody)
 	if err != nil {
+		var routerCalculateError *x.ErrRouterCalculate
+		if errors.As(err, &routerCalculateError) {
+			return &extprocv3.ProcessingResponse{
+				Response: &extprocv3.ProcessingResponse_ImmediateResponse{
+					ImmediateResponse: routerCalculateError.ImmediateResponse,
+				},
+			}, nil
+		}
 		if errors.Is(err, x.ErrNoMatchingRule) {
 			return &extprocv3.ProcessingResponse{
 				Response: &extprocv3.ProcessingResponse_ImmediateResponse{

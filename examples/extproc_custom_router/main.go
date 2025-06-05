@@ -12,6 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	extprocv3 "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
+
 	"github.com/envoyproxy/ai-gateway/cmd/extproc/mainlib"
 	"github.com/envoyproxy/ai-gateway/filterapi"
 	"github.com/envoyproxy/ai-gateway/filterapi/x"
@@ -31,14 +33,14 @@ type myCustomRouter struct {
 }
 
 // Calculate implements [x.Router.Calculate].
-func (m *myCustomRouter) Calculate(headers map[string]string) (backend filterapi.RouteRuleName, err error) {
+func (m *myCustomRouter) Calculate(headers map[string]string, _ *extprocv3.HttpBody) (backend filterapi.RouteRuleName, err error) {
 	// Simply logs the headers and delegates the calculation to the default router.
 	modelName, ok := headers[m.config.ModelNameHeaderKey]
 	if !ok {
 		panic("model name not found in the headers")
 	}
 	fmt.Printf("model name: %s\n", modelName)
-	return m.defaultRouter.Calculate(headers)
+	return m.defaultRouter.Calculate(headers, nil)
 }
 
 // This demonstrates how to build a custom router for the external processor.

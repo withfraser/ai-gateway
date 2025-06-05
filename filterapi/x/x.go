@@ -9,7 +9,9 @@ package x
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	extprocv3 "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
@@ -31,6 +33,24 @@ var ErrNoMatchingRule = errors.New("no matching rule found")
 // The defaultRouter can be used to delegate the calculation to the default router implementation.
 type NewCustomRouterFn func(defaultRouter Router, config *filterapi.Config) Router
 
+type ErrRouterCalculate struct {
+	// Err is the error that occurred during the calculation.
+	Err error
+
+	// ImmediateResponse is the immediate response to return to the client.
+	ImmediateResponse *extprocv3.ImmediateResponse
+}
+
+// Error implements the error interface for ErrRouterCalculate.
+func (e *ErrRouterCalculate) Error() string {
+	return fmt.Sprintf("failed to calculate route: %v", e.Err)
+}
+
+// Unwrap implements the errors.Unwrap interface for ErrRouterCalculate.
+func (e *ErrRouterCalculate) Unwrap() error {
+	return e.Err
+}
+
 // Router is the interface for the router.
 //
 // Router must be goroutine-safe as it is shared across multiple requests.
@@ -41,7 +61,7 @@ type Router interface {
 	// with the parsed model name based on the [filterapi.Config] given to the NewCustomRouterFn.
 	//
 	// Returns the selected route rule name and the error if any.
-	Calculate(requestHeaders map[string]string) (route filterapi.RouteRuleName, err error)
+	Calculate(requestHeaders map[string]string, requestBody *extprocv3.HttpBody) (route filterapi.RouteRuleName, err error)
 }
 
 // NewCustomChatCompletionMetrics is the function to create a custom chat completion AI Gateway metrics over

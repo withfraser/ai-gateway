@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	extprocv3 "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/envoyproxy/ai-gateway/filterapi"
@@ -20,7 +21,7 @@ import (
 type dummyCustomRouter struct{ called bool }
 
 // Calculate implements [x.Router.Calculate].
-func (c *dummyCustomRouter) Calculate(map[string]string) (filterapi.RouteRuleName, error) {
+func (c *dummyCustomRouter) Calculate(map[string]string, *extprocv3.HttpBody) (filterapi.RouteRuleName, error) {
 	c.called = true
 	return "", nil
 }
@@ -36,7 +37,7 @@ func TestRouter_NewRouter_Custom(t *testing.T) {
 	_, ok := r.(*dummyCustomRouter)
 	require.True(t, ok)
 
-	_, err = r.Calculate(nil)
+	_, err = r.Calculate(nil, nil)
 	require.NoError(t, err)
 	require.True(t, r.(*dummyCustomRouter).called)
 }
@@ -75,16 +76,16 @@ func TestRouter_Calculate(t *testing.T) {
 	require.True(t, ok)
 
 	t.Run("no matching rule", func(t *testing.T) {
-		_, err := r.Calculate(map[string]string{"x-model-name": "something-quirky"})
+		_, err := r.Calculate(map[string]string{"x-model-name": "something-quirky"}, nil)
 		require.Error(t, err)
 	})
 	t.Run("matching rule - single backend choice", func(t *testing.T) {
-		b, err := r.Calculate(map[string]string{"x-model-name": "gpt4.4444"})
+		b, err := r.Calculate(map[string]string{"x-model-name": "gpt4.4444"}, nil)
 		require.NoError(t, err)
 		require.Equal(t, filterapi.RouteRuleName("openai"), b)
 	})
 	t.Run("first match win", func(t *testing.T) {
-		b, err := r.Calculate(map[string]string{"x-some-random-non-model-header": "dog", "x-model-name": "llama3.3333"})
+		b, err := r.Calculate(map[string]string{"x-some-random-non-model-header": "dog", "x-model-name": "llama3.3333"}, nil)
 		require.NoError(t, err)
 		require.Equal(t, filterapi.RouteRuleName("cat"), b)
 	})
@@ -97,7 +98,7 @@ func TestRouter_Calculate(t *testing.T) {
 		for range 1000 {
 			go func() {
 				defer wg.Done()
-				b, err := r.Calculate(map[string]string{"x-model-name": "llama3.3333"})
+				b, err := r.Calculate(map[string]string{"x-model-name": "llama3.3333"}, nil)
 				require.NoError(t, err)
 				require.NotNil(t, b)
 				count.Add(1)

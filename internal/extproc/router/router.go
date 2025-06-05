@@ -6,6 +6,8 @@
 package router
 
 import (
+	extprocv3 "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
+
 	"github.com/envoyproxy/ai-gateway/filterapi"
 	"github.com/envoyproxy/ai-gateway/filterapi/x"
 )
@@ -26,7 +28,7 @@ func New(config *filterapi.Config, newCustomFn x.NewCustomRouterFn) (x.Router, e
 }
 
 // Calculate implements [x.Router.Calculate].
-func (r *router) Calculate(headers map[string]string) (name filterapi.RouteRuleName, err error) {
+func (r *router) Calculate(headers map[string]string, _ *extprocv3.HttpBody) (name filterapi.RouteRuleName, err error) {
 	var rule *filterapi.RouteRule
 outer:
 	for i := range r.rules {
